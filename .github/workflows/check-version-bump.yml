@@ -2,10 +2,6 @@ name: Check for Version Bump in Chart.yaml
 
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-      - deployments/chart/Chart.yaml
 
 jobs:
   check_version_bump:
