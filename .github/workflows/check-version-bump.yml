@@ -52,8 +52,11 @@ jobs:
         uses: octokit/request-action@v2.3.1
         with:
           route: POST /repos/{{ github.repository }}/statuses/{{ github.sha }}
-          state: failure
-          context: version-bump-check
-          description: 'Version bump detected. Awaiting maintainer approval.'
+          body: |
+            {
+              "state": "failure",
+              "context": "version-bump-check",
+              "description": "Version bump detected. Awaiting maintainer approval."
+            }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
