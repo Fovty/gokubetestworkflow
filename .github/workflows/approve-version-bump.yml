@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
+      statuses: write  # Add this to explicitly grant write access to commit statuses
 
     steps:
       - name: Checkout code
