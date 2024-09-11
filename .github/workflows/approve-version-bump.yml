@@ -3,16 +3,14 @@ name: Approve Version Bump
 on:
   issue_comment:
     types: [created, edited]
-  pull_request_review:
-    types: [submitted]
 
 jobs:
-  check_reaction:
+  approve_version_bump:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       pull-requests: write
-      issues: write
+      issues: read
+      contents: read
 
     steps:
       - name: Checkout code
@@ -29,18 +27,18 @@ jobs:
               issue_number: context.issue.number,
             });
 
-            // Find the warning comment made by the bot
-            const warningComment = comments.data.find(comment =>
-              comment.user.login === 'github-actions[bot]' && comment.body.includes('Warning: This PR will result in a new release')
+            const botComment = comments.data.find(comment =>
+              comment.user.login === 'github-actions[bot]' &&
+              comment.body.includes('Warning: This PR will result in a new release')
             );
 
-            if (warningComment) {
-              return { comment_id: warningComment.id };
+            if (botComment) {
+              return { comment_id: botComment.id };
             } else {
-              throw new Error('Warning comment not found.');
+              throw new Error('Bot comment not found.');
             }
 
-      - name: Check if the comment has a thumbs up reaction
+      - name: Check for thumbs up reaction
         id: check_reaction
         uses: actions/github-script@v6
         with:
@@ -57,22 +55,15 @@ jobs:
       - name: Extract maintainers from CODEOWNERS
         id: get_codeowners
         run: |
-          # Extract the maintainers from CODEOWNERS file
           maintainers=$(grep -v '^#' CODEOWNERS | awk '{print $NF}' | sort | uniq)
           echo "maintainers=$maintainers" >> $GITHUB_ENV
 
-      - name: Check if the reaction is from a maintainer
+      - name: Verify if the thumbs up is from a maintainer
         if: steps.check_reaction.outputs.thumbs_up == 'true'
-        id: check_maintainer
         run: |
-          # Get the login of the person who added the thumbs-up reaction
           reaction_author="${{ github.event.comment.user.login }}"
           maintainers="${{ env.maintainers }}"
-
-          # Convert maintainers string to array
           IFS=' ' read -r -a maintainers_array <<< "$maintainers"
-
-          # Check if the reaction author is in the list of maintainers
           if [[ " ${maintainers_array[@]} " =~ " $reaction_author " ]]; then
             echo "Approval granted by maintainer: $reaction_author"
             echo "is_approved=true" >> $GITHUB_ENV
@@ -90,9 +81,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.payload.pull_request.head.sha,
-              state: "success", # Mark the check as successful
+              state: "success",
               context: "version-bump-check",
               description: "Approved by maintainer",
             });
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
