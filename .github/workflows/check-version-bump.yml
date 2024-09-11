@@ -2,10 +2,11 @@ name: Check for Version Bump in Chart.yaml
 
 on:
   pull_request:
+    types: [opened, edited, labeled]
 
 jobs:
   check_version_bump:
-    name: Version Bump Check  # This name is used in branch protection rules
+    name: Version Bump Check
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -17,6 +18,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Skip the version bump check if the 'approved-for-merge' label is present
+      - name: Skip if 'approved-for-merge' label exists
+        if: ${{ github.event.label.name == 'approved-for-merge' }}
+        run: |
+          echo "Approved label found. Exiting with success."
+          exit 0
+
+      # Continue with the version bump check if the label is not present
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v45
@@ -40,13 +49,13 @@ jobs:
         run: |
           if [ "v${{ env.version }}" != "${{ env.latest_tag }}" ]; then
             echo "Version bump detected. Failing the job."
-            exit 1  # This will fail the job, blocking the PR
+            exit 1
           else
             echo "No version bump detected."
           fi
 
       - name: Post warning comment
-        if: failure()  # This will only run if the job failed
+        if: failure()
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
