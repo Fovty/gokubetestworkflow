@@ -43,15 +43,15 @@ jobs:
 
       - name: Compare Chart version and latest Git tag
         run: |
-          if [ "$VERSION" != "$LATEST_TAG" ]; then
-            echo "Version bump detected: Chart version ($VERSION) differs from the latest Git tag ($LATEST_TAG)."
+          if [ "${{ env.version }}" != "${{ env.latest_tag }}" ]; then
+            echo "Version bump detected: Chart version (${{ env.version }}) differs from the latest Git tag (${{ env.latest_tag }})."
             echo "version_bump=true" >> $GITHUB_ENV
           else
             echo "No version bump detected."
             echo "version_bump=false" >> $GITHUB_ENV
         env:
-          VERSION: ${{ env.version }}
-          LATEST_TAG: ${{ env.latest_tag }}
+          version: ${{ env.version }}
+          latest_tag: ${{ env.latest_tag }}
 
       - name: Post warning comment
         if: env.version_bump == 'true'
