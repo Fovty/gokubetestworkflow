@@ -1,26 +1,38 @@
-name: Approve PR Version Bump
+name: Approve PR by Label
 
 on:
-  workflow_dispatch:  # This enables the manual trigger button
+  pull_request:
+    types: [labeled]  # Trigger workflow when a label is added to the PR
 
 jobs:
   approve_version_bump:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       pull-requests: write
+      contents: write
 
     steps:
-      - name: Set PR to approved
+      - name: Check if the approved label is added
+        id: check_label
+        run: |
+          if [[ "${{ github.event.label.name }}" == "approved-for-merge" ]]; then
+            echo "Label 'approved-for-merge' has been added."
+            echo "approved=true" >> $GITHUB_ENV
+          else
+            echo "No approval label added."
+            echo "approved=false" >> $GITHUB_ENV
+
+      - name: Set PR status to success if approved
+        if: env.approved == 'true'
         uses: actions/github-script@v6
         with:
           script: |
-            const pr_number = context.issue.number;
+            const pr_number = context.payload.pull_request.number;
             await github.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.payload.pull_request.head.sha,
               state: "success",
               context: "version-bump-check",
-              description: "Approved by maintainer",
+              description: "Approved by adding the 'approved-for-merge' label",
             });
