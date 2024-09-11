@@ -49,6 +49,10 @@ jobs:
           # Strip the leading 'v' from the Git tag if it exists
           git_tag_version="${git_tag_version#v}"
 
+          # Print for debugging
+          echo "Chart version: $chart_version"
+          echo "Git tag version: $git_tag_version"
+
           # Use sort -V to compare semantic versions (only works in bash)
           if [ "$(printf '%s\n' "$git_tag_version" "$chart_version" | sort -V | head -n1)" != "$git_tag_version" ]; then
             echo "Version bump detected: Chart version ($chart_version) is greater than the latest Git tag ($git_tag_version). Failing the job."
