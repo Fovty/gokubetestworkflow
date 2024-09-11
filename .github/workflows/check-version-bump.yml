@@ -41,31 +41,39 @@ jobs:
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
           echo "Latest Git tag: $latest_tag"
 
-      - name: Compare versions
-        id: compare_versions
+      - name: Compare Chart version and latest Git tag
         run: |
-          chart_version=${{ env.version }}
-          git_tag_version=${{ env.latest_tag }}
-
-          git_tag_version="${git_tag_version#v}"
-
-          if [ "$chart_version" != "$git_tag_version" ]; then
-            echo "Version bump detected: Chart version ($chart_version) differs from latest Git tag ($git_tag_version)"
+          if [ "$VERSION" != "$LATEST_TAG" ]; then
+            echo "Version bump detected: Chart version ($VERSION) differs from the latest Git tag ($LATEST_TAG)."
             echo "version_bump=true" >> $GITHUB_ENV
           else
             echo "No version bump detected."
             echo "version_bump=false" >> $GITHUB_ENV
+        env:
+          VERSION: ${{ env.version }}
+          LATEST_TAG: ${{ env.latest_tag }}
 
       - name: Post warning comment
         if: env.version_bump == 'true'
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: "Warning: This PR will result in a new release because the version in Chart.yaml (${{ env.version }}) is different from the latest Git tag (${{ env.latest_tag }}). Please confirm before merging."
+          body: "Warning: This PR will result in a new release because the version in Chart.yaml (`${{ env.version }}`) is different from the latest Git tag (`${{ env.latest_tag }}`). Please confirm before merging."
 
       - name: Set PR as blocked (requires thumbs up from maintainer)
         if: env.version_bump == 'true'
-        run: |
-          echo "The PR is now blocked and requires a thumbs-up from a maintainer to proceed."
-          exit 1
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.payload.pull_request.head.sha;
+            await github.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: 'failure',
+              context: 'version-bump-check',
+              description: 'Version bump detected. Awaiting maintainer approval.',
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

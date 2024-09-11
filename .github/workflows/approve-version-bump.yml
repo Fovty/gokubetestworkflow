@@ -29,6 +29,7 @@ jobs:
               issue_number: context.issue.number,
             });
 
+            // Find the warning comment made by the bot
             const warningComment = comments.data.find(comment =>
               comment.user.login === 'github-actions[bot]' && comment.body.includes('Warning: This PR will result in a new release')
             );
@@ -37,6 +38,7 @@ jobs:
               return { comment_id: warningComment.id };
             } else {
               throw new Error('Warning comment not found.');
+            }
 
       - name: Check if the comment has a thumbs up reaction
         id: check_reaction
@@ -55,17 +57,22 @@ jobs:
       - name: Extract maintainers from CODEOWNERS
         id: get_codeowners
         run: |
+          # Extract the maintainers from CODEOWNERS file
           maintainers=$(grep -v '^#' CODEOWNERS | awk '{print $NF}' | sort | uniq)
           echo "maintainers=$maintainers" >> $GITHUB_ENV
 
       - name: Check if the reaction is from a maintainer
         if: steps.check_reaction.outputs.thumbs_up == 'true'
+        id: check_maintainer
         run: |
+          # Get the login of the person who added the thumbs-up reaction
           reaction_author="${{ github.event.comment.user.login }}"
           maintainers="${{ env.maintainers }}"
 
+          # Convert maintainers string to array
           IFS=' ' read -r -a maintainers_array <<< "$maintainers"
 
+          # Check if the reaction author is in the list of maintainers
           if [[ " ${maintainers_array[@]} " =~ " $reaction_author " ]]; then
             echo "Approval granted by maintainer: $reaction_author"
             echo "is_approved=true" >> $GITHUB_ENV
@@ -83,7 +90,9 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.payload.pull_request.head.sha,
-              state: "success",
+              state: "success", # Mark the check as successful
               context: "version-bump-check",
               description: "Approved by maintainer",
             });
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
