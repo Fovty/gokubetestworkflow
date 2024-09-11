@@ -34,7 +34,7 @@ jobs:
       - name: Check for appVersion changes
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         run: |
-          if git diff main -- deployments/chart/Chart.yaml | grep -qe "^[+-]appVersion: "; then
+          if git diff test -- deployments/chart/Chart.yaml | grep -qe "^[+-]appVersion: "; then
             echo "appVersion has changed. Failing the job."
             exit 1
           else
