@@ -2,7 +2,7 @@ name: Check for Version Bump in Chart.yaml
 
 on:
   pull_request:
-    types: [opened, edited, labeled]
+
 
 jobs:
   check_version_bump:
