@@ -8,8 +8,8 @@ jobs:
   approve_version_bump:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -21,16 +21,14 @@ jobs:
           echo "Label added: ${{ github.event.label.name }}"
 
       - name: Set PR status to success if the label is 'approved-for-merge'
-        if: ${{ github.event.label.name == 'approved-for-merge' }}  # Correct condition syntax
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const pr_number = context.payload.pull_request.number;
-            await github.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.payload.pull_request.head.sha,
-              state: "success",
-              context: "version-bump-check",
-              description: "Approved by adding the 'approved-for-merge' label",
-            });
+        if: ${{ github.event.label.name == 'approved-for-merge' }}
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{
+              "state": "success",
+              "context": "version-bump-check",
+              "description": "Approved by adding the approved-for-merge label"
+            }'
