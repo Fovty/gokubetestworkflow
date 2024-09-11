@@ -37,23 +37,30 @@ jobs:
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         id: get_latest_tag
         run: |
-          latest_tag=$(git describe --tags --abbrev=0 || echo "No tags found")
+          latest_tag=$(git describe --tags --abbrev=0 || echo "0.0.0")
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
 
-      - name: Compare versions and fail if there is a version bump
+      - name: Compare versions and fail if the PR version is greater than the latest tag
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         run: |
-          if [ "v${{ env.version }}" != "${{ env.latest_tag }}" ]; then
-            echo "Version bump detected. Failing the job."
+          chart_version=${{ env.version }}
+          git_tag_version=${{ env.latest_tag }}
+
+          # Strip the leading 'v' from the Git tag if it exists
+          git_tag_version="${git_tag_version#v}"
+
+          # Use sort -V to compare semantic versions (only works in bash)
+          if [ "$(printf '%s\n' "$git_tag_version" "$chart_version" | sort -V | head -n1)" != "$git_tag_version" ]; then
+            echo "Version bump detected: Chart version ($chart_version) is greater than the latest Git tag ($git_tag_version). Failing the job."
             exit 1
           else
-            echo "No version bump detected."
+            echo "No version bump detected or version in PR is not greater than the latest tag."
           fi
 
       - name: Post warning comment
-        if: ${{ failure() && !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
+        if: failure()
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: "Warning: This PR will result in a new release because the version in Chart.yaml (`${{ env.version }}`) is different from the latest Git tag (`${{ env.latest_tag }}`). Please confirm before merging."
+          body: "Warning: This PR will result in a new release because the version in Chart.yaml (`${{ env.version }}`) is greater than the latest Git tag (`${{ env.latest_tag }}`). Please confirm before merging."
