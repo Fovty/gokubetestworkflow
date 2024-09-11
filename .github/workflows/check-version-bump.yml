@@ -47,16 +47,14 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: "Warning: This PR will result in a new release because the version in Chart.yaml (`${{ env.version }}`) is different from the latest Git tag (`${{ env.latest_tag }}`). Please confirm before merging."
 
-      - name: Set PR as blocked (requires thumbs up from maintainer)
+      - name: Set PR as blocked (requires approval)
         if: env.version_bump == 'true'
-        uses: octokit/request-action@v2.3.1
+        uses: octodemo-resources/github-commit-status@v1.0.0
         with:
-          route: POST /repos/{{ github.repository }}/statuses/{{ github.sha }}
-          body: |
-            {
-              "state": "failure",
-              "context": "version-bump-check",
-              "description": "Version bump detected. Awaiting maintainer approval."
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          sha: ${{ github.sha }}
+          context: version-bump-check
+          state: failure
+          description: 'Version bump detected. Awaiting maintainer approval.'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
