@@ -2,14 +2,14 @@ name: Approve PR by Label
 
 on:
   pull_request:
-    types: [labeled]  # Trigger workflow when a label is added to the PR
+    types: [labeled]
 
 jobs:
   approve_version_bump:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      statuses: write  # Ensure that status updates are allowed
+      statuses: write
 
     steps:
       - name: Checkout code

@@ -5,7 +5,7 @@ on:
 
 jobs:
   check_version_bump:
-    name: Version Bump Check  # This name is used in branch protection rules
+    name: Version Bump Check
     runs-on: ubuntu-latest
     permissions:
       contents: write
