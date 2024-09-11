@@ -5,6 +5,7 @@ on:
 
 jobs:
   check_version_bump:
+    name: Version Bump Check  # This name is used in branch protection rules
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -35,12 +36,17 @@ jobs:
           latest_tag=$(git describe --tags --abbrev=0 || echo "No tags found")
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
 
-      - name: Compare and Set version bump status
-        if: "v${{ env.version }} != ${{ env.latest_tag }}"
-        run: echo "version_bump=true" >> $GITHUB_ENV
+      - name: Compare versions and fail if there is a version bump
+        run: |
+          if [ "v${{ env.version }}" != "${{ env.latest_tag }}" ]; then
+            echo "Version bump detected. Failing the job."
+            exit 1  # This will fail the job, blocking the PR
+          else
+            echo "No version bump detected."
+          fi
 
       - name: Post warning comment
-        if: env.version_bump == 'true'
+        if: failure()  # This will only run if the job failed
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
