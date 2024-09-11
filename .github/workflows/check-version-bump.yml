@@ -49,17 +49,11 @@ jobs:
 
       - name: Set PR as blocked (requires thumbs up from maintainer)
         if: env.version_bump == 'true'
-        uses: actions/github-script@v6
+        uses: octokit/request-action@v2.3.1
         with:
-          script: |
-            const sha = context.payload.pull_request.head.sha;
-            await github.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: sha,
-              state: 'failure',
-              context: 'version-bump-check',
-              description: 'Version bump detected. Awaiting maintainer approval.',
-            });
+          route: POST /repos/{{ github.repository }}/statuses/{{ github.sha }}
+          state: failure
+          context: version-bump-check
+          description: 'Version bump detected. Awaiting maintainer approval.'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
