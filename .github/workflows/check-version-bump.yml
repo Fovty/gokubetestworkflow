@@ -23,32 +23,21 @@ jobs:
           files: |
             deployments/chart/Chart.yaml
 
-      - name: Check if Chart.yaml has changed
-        if: steps.changed-files.outputs.any_changed == 'true'
-        run: echo "Chart.yaml has been modified."
-
-      - name: Extract version from Chart.yaml
+      - name: Extract Chart Version
         id: chart_version
         run: |
           version=$(yq e '.version' ./deployments/chart/Chart.yaml)
           echo "version=$version" >> $GITHUB_ENV
-          echo "Extracted version from Chart.yaml: $version"
 
       - name: Get latest Git tag
         id: get_latest_tag
         run: |
-          latest_tag=$(git describe --tags --abbrev=0 || echo "0.0.0")
+          latest_tag=$(git describe --tags --abbrev=0 || echo "No tags found")
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
-          echo "Fetched latest Git tag: $latest_tag"
 
-      - name: Compare Chart version and latest Git tag
-        run: |
-          if [ "${{ env.version }}" != "${{ env.latest_tag }}" ]; then
-            echo "Version bump detected: Chart version (${env.version}) differs from the latest Git tag (${env.latest_tag})."
-            echo "version_bump=true" >> $GITHUB_ENV
-          else
-            echo "No version bump detected."
-            echo "version_bump=false" >> $GITHUB_ENV
+      - name: Compare and Set version bump status
+        if: "v${{ env.version }} != ${{ env.latest_tag }}"
+        run: echo "version_bump=true" >> $GITHUB_ENV
 
       - name: Post warning comment
         if: env.version_bump == 'true'
