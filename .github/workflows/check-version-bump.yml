@@ -32,26 +32,28 @@ jobs:
         run: |
           version=$(yq e '.version' ./deployments/chart/Chart.yaml)
           echo "version=$version" >> $GITHUB_ENV
-          echo "Current Chart version: $version"
+          echo "Extracted version from Chart.yaml: $version"
 
       - name: Get latest Git tag
         id: get_latest_tag
         run: |
           latest_tag=$(git describe --tags --abbrev=0 || echo "0.0.0")
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
-          echo "Latest Git tag: $latest_tag"
+          echo "Fetched latest Git tag: $latest_tag"
+
+      - name: Debug versions (log both values)
+        run: |
+          echo "Version from Chart.yaml: ${{ env.version }}"
+          echo "Latest Git tag: ${{ env.latest_tag }}"
 
       - name: Compare Chart version and latest Git tag
         run: |
           if [ "${{ env.version }}" != "${{ env.latest_tag }}" ]; then
-            echo "Version bump detected: Chart version (${{ env.version }}) differs from the latest Git tag (${{ env.latest_tag }})."
+            echo "Version bump detected: Chart version ( ${{ env.version }} ) differs from the latest Git tag ( ${{ env.latest_tag }} )."
             echo "version_bump=true" >> $GITHUB_ENV
           else
             echo "No version bump detected."
             echo "version_bump=false" >> $GITHUB_ENV
-        env:
-          version: ${{ env.version }}
-          latest_tag: ${{ env.latest_tag }}
 
       - name: Post warning comment
         if: env.version_bump == 'true'
