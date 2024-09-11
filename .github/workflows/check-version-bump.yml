@@ -17,26 +17,38 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: test  # Ensure the main branch is fetched
+          ref: test  # Ensure the default branch is fetched
 
       - name: Fetch the latest from the test branch
         run: git fetch origin test
+
+      # Debugging step: Show the current commit and diff for validation
+      - name: Show current branch and diff
+        run: |
+          echo "Current branch and commit:"
+          git branch
+          git log -1
+          echo "Running git diff against origin/test:"
+          git diff origin/test -- deployments/chart/Chart.yaml
 
       - name: Extract Chart appVersion
         id: extract_appversion
         run: |
           appversion=$(yq e '.appVersion' ./deployments/chart/Chart.yaml)
           echo "appversion=$appversion" >> $GITHUB_ENV
+
       # Check for changes in the appVersion between PR and main
       - name: Check for appVersion changes
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'release') }}
         run: |
+          echo "Checking for appVersion changes..."
           if git diff origin/test -- deployments/chart/Chart.yaml | grep -qe "^[+-]appVersion: "; then
             echo "appVersion has changed. Failing the job."
             exit 1
           else
             echo "No appVersion changes detected."
           fi
+
       # Post warning comment if there is a failure
       - name: Post warning comment
         if: ${{ failure() }}
