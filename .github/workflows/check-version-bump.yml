@@ -17,30 +17,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: main  # Ensure the main branch is fetched
 
-      - name: Extract Chart Version
-        id: chart_version
+      - name: Fetch the latest from the main branch
+        run: git fetch origin main
+
+      - name: Extract Chart appVersion
+        id: extract_appversion
         run: |
-          version=$(yq e '.version' ./deployments/chart/Chart.yaml)
-          echo "version=$version" >> $GITHUB_ENV
-
-      - name: Get latest Git tag
-        id: get_latest_tag
-        run: |
-          latest_tag=$(git describe --tags --abbrev=0 || echo "No tags found")
-          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
-
+          appversion=$(yq e '.appVersion' ./deployments/chart/Chart.yaml)
+          echo "appversion=$appversion" >> $GITHUB_ENV
       # Check for changes in the appVersion between PR and main
       - name: Check for appVersion changes
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'release') }}
         run: |
-          if git diff test -- deployments/chart/Chart.yaml | grep -qe "^[+-]appVersion: "; then
+          if git diff origin/test -- deployments/chart/Chart.yaml | grep -qe "^[+-]appVersion: "; then
             echo "appVersion has changed. Failing the job."
             exit 1
           else
             echo "No appVersion changes detected."
           fi
-
       # Post warning comment if there is a failure
       - name: Post warning comment
         if: ${{ failure() }}
@@ -48,4 +44,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: "Warning: This PR will result in a new release because the version in Chart.yaml (`${{ env.version }}`) or the appVersion has changed. Please confirm before merging."
+          body: "⚠️ Warning: This PR will result in a new release because the `appVersion` in Chart.yaml has changed to `${{ env.appversion }}`. Please confirm before merging."
