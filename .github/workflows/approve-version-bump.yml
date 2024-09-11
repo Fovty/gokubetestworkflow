@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      statuses: write  # Add this to explicitly grant write access to commit statuses
+      statuses: write  # Ensure that status updates are allowed
 
     steps:
       - name: Checkout code
@@ -29,6 +29,6 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
             -d '{
               "state": "success",
-              "context": "version-bump-check",
+              "context": "Version Bump Check",
               "description": "Approved by adding the approved-for-merge label"
             }'
