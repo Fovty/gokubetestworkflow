@@ -1,4 +1,4 @@
-name: Check for Version Bump in Chart.yaml
+name: Check for Version Bump and appVersion in Chart.yaml
 
 on:
   pull_request:
@@ -18,6 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Check for the 'approved-for-merge' label and skip if found
       - name: Get changed files
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         id: changed-files
@@ -40,6 +41,7 @@ jobs:
           latest_tag=$(git describe --tags --abbrev=0 || echo "No tags found")
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
 
+      # Compare versions and fail if there is a version bump
       - name: Compare versions and fail if there is a version bump
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         run: |
@@ -50,10 +52,22 @@ jobs:
             echo "No version bump detected."
           fi
 
+      # Check for changes in the appVersion between PR and main
+      - name: Check for appVersion changes
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
+        run: |
+          if git diff main -- deployments/chart/Chart.yaml | grep -qe "^[+-]appVersion: "; then
+            echo "appVersion has changed. Failing the job."
+            exit 1
+          else
+            echo "No appVersion changes detected."
+          fi
+
+      # Post warning comment if there is a failure
       - name: Post warning comment
         if: ${{ failure() && !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: "Warning: This PR will result in a new release because the version in Chart.yaml (`${{ env.version }}`) is different from the latest Git tag (`${{ env.latest_tag }}`). Please confirm before merging."
+          body: "Warning: This PR will result in a new release because the version in Chart.yaml (`${{ env.version }}`) or the appVersion has changed. Please confirm before merging."
