@@ -1,82 +1,21 @@
-name: Approve Version Bump
+name: Approve PR Version Bump
 
 on:
-  issue_comment:
-    types: [created, edited]
+  workflow_dispatch:  # This enables the manual trigger button
 
 jobs:
   approve_version_bump:
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       pull-requests: write
-      issues: read
-      contents: read
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Find the warning comment by the bot
-        id: find_comment
+      - name: Set PR to approved
         uses: actions/github-script@v6
         with:
           script: |
-            const comments = await github.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const botComment = comments.data.find(comment =>
-              comment.user.login === 'github-actions[bot]' &&
-              comment.body.includes('Warning: This PR will result in a new release')
-            );
-
-            if (botComment) {
-              return { comment_id: botComment.id };
-            } else {
-              throw new Error('Bot comment not found.');
-            }
-
-      - name: Check for thumbs up reaction
-        id: check_reaction
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const reactions = await github.reactions.listForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: ${{ steps.find_comment.outputs.comment_id }},
-            });
-
-            const thumbsUp = reactions.data.find(reaction => reaction.content === '+1');
-            return { thumbs_up: thumbsUp ? 'true' : 'false' };
-
-      - name: Extract maintainers from CODEOWNERS
-        id: get_codeowners
-        run: |
-          maintainers=$(grep -v '^#' CODEOWNERS | awk '{print $NF}' | sort | uniq)
-          echo "maintainers=$maintainers" >> $GITHUB_ENV
-
-      - name: Verify if the thumbs up is from a maintainer
-        if: steps.check_reaction.outputs.thumbs_up == 'true'
-        run: |
-          reaction_author="${{ github.event.comment.user.login }}"
-          maintainers="${{ env.maintainers }}"
-          IFS=' ' read -r -a maintainers_array <<< "$maintainers"
-          if [[ " ${maintainers_array[@]} " =~ " $reaction_author " ]]; then
-            echo "Approval granted by maintainer: $reaction_author"
-            echo "is_approved=true" >> $GITHUB_ENV
-          else
-            echo "Approval not granted by a maintainer"
-            echo "is_approved=false" >> $GITHUB_ENV
-
-      - name: Unblock PR if approved
-        if: env.is_approved == 'true'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const pr_number = context.payload.issue.number;
+            const pr_number = context.issue.number;
             await github.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
