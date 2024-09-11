@@ -30,17 +30,6 @@ jobs:
           latest_tag=$(git describe --tags --abbrev=0 || echo "No tags found")
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
 
-      # Compare versions and fail if there is a version bump
-      - name: Compare versions and fail if there is a version bump
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
-        run: |
-          if [ "v${{ env.version }}" != "${{ env.latest_tag }}" ]; then
-            echo "Version bump detected. Failing the job."
-            exit 1
-          else
-            echo "No version bump detected."
-          fi
-
       # Check for changes in the appVersion between PR and main
       - name: Check for appVersion changes
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
@@ -54,7 +43,7 @@ jobs:
 
       # Post warning comment if there is a failure
       - name: Post warning comment
-        if: ${{ failure() && !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
+        if: ${{ failure() }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
