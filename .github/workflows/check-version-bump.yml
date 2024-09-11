@@ -41,15 +41,10 @@ jobs:
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
           echo "Fetched latest Git tag: $latest_tag"
 
-      - name: Debug versions (log both values)
-        run: |
-          echo "Version from Chart.yaml: ${{ env.version }}"
-          echo "Latest Git tag: ${{ env.latest_tag }}"
-
       - name: Compare Chart version and latest Git tag
         run: |
           if [ "${{ env.version }}" != "${{ env.latest_tag }}" ]; then
-            echo "Version bump detected: Chart version ( ${{ env.version }} ) differs from the latest Git tag ( ${{ env.latest_tag }} )."
+            echo "Version bump detected: Chart version (${env.version}) differs from the latest Git tag (${env.latest_tag})."
             echo "version_bump=true" >> $GITHUB_ENV
           else
             echo "No version bump detected."
