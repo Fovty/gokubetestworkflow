@@ -12,18 +12,16 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Check if the approved label is added
         id: check_label
         run: |
-          if [[ "${{ github.event.label.name }}" == "approved-for-merge" ]]; then
-            echo "Label 'approved-for-merge' has been added."
-            echo "approved=true" >> $GITHUB_ENV
-          else
-            echo "No approval label added."
-            echo "approved=false" >> $GITHUB_ENV
+          echo "Label added: ${{ github.event.label.name }}"
 
-      - name: Set PR status to success if approved
-        if: env.approved == 'true'
+      - name: Set PR status to success if the label is 'approved-for-merge'
+        if: ${{ github.event.label.name == 'approved-for-merge' }}  # Correct condition syntax
         uses: actions/github-script@v6
         with:
           script: |
