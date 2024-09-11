@@ -18,15 +18,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Skip the version bump check if the 'approved-for-merge' label is present
-      - name: Skip if 'approved-for-merge' label exists
-        if: ${{ github.event.label.name == 'approved-for-merge' }}
-        run: |
-          echo "Approved label found. Exiting with success."
-          exit 0
-
-      # Continue with the version bump check if the label is not present
       - name: Get changed files
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         id: changed-files
         uses: tj-actions/changed-files@v45
         with:
@@ -34,18 +27,21 @@ jobs:
             deployments/chart/Chart.yaml
 
       - name: Extract Chart Version
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         id: chart_version
         run: |
           version=$(yq e '.version' ./deployments/chart/Chart.yaml)
           echo "version=$version" >> $GITHUB_ENV
 
       - name: Get latest Git tag
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         id: get_latest_tag
         run: |
           latest_tag=$(git describe --tags --abbrev=0 || echo "No tags found")
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
 
       - name: Compare versions and fail if there is a version bump
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         run: |
           if [ "v${{ env.version }}" != "${{ env.latest_tag }}" ]; then
             echo "Version bump detected. Failing the job."
@@ -55,7 +51,7 @@ jobs:
           fi
 
       - name: Post warning comment
-        if: failure()
+        if: ${{ failure() && !contains(github.event.pull_request.labels.*.name, 'approved-for-merge') }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
