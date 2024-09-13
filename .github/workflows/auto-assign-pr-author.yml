@@ -20,4 +20,5 @@ jobs:
         if: steps.check-assignee.outputs.result == 'false'
         uses: actions-ecosystem/action-add-assignees@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           assignees: ${{ github.event.pull_request.user.login }}
